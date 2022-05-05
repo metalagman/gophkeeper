@@ -7,7 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gophkeeper/internal/app/client"
+	"gophkeeper/internal/client/config"
 	"gophkeeper/pkg/logger"
 	"gophkeeper/pkg/version"
 	"io/fs"
@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var cfg = client.Config{}
+var cfg = config.Config{}
 
 var rootCmd = &cobra.Command{
 	Use:   os.Args[0],

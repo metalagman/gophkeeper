@@ -7,7 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gophkeeper/internal/app/client"
+	"gophkeeper/internal/server/config"
 	"gophkeeper/pkg/logger"
 	"gophkeeper/pkg/version"
 	"io/fs"
@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var cfg = client.Config{}
+var cfg = config.Config{}
 
 var rootCmd = &cobra.Command{
 	Use:   os.Args[0],
@@ -53,9 +53,11 @@ func initDotEnv() {
 func initConfig() {
 	viper.SetConfigType("toml")
 	var defaultConfig = []byte(`
+[db]
+dsn=""
 [log]
 verbose=0
-pretty=0
+pretty=0xn
 `)
 	logger.CheckErr(viper.ReadConfig(bytes.NewBuffer(defaultConfig)))
 
