@@ -57,7 +57,7 @@ func initConfig() {
 dsn=""
 [log]
 verbose=0
-pretty=0xn
+pretty=0
 `)
 	logger.CheckErr(viper.ReadConfig(bytes.NewBuffer(defaultConfig)))
 
