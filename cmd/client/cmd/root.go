@@ -40,7 +40,7 @@ func init() {
 	cobra.OnInitialize(initLogger)
 
 	//rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Set high log verbosity")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "set high log verbosity")
 }
 
 func initDotEnv() {

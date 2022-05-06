@@ -40,8 +40,8 @@ func init() {
 	cobra.OnInitialize(initLogger)
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Set high log verbosity")
-	rootCmd.PersistentFlags().BoolP("pretty", "p", false, "Set pretty log formatting (instead of json)")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "set high log verbosity")
+	rootCmd.PersistentFlags().BoolP("pretty", "p", false, "set pretty log formatting (instead of json)")
 }
 
 func initDotEnv() {
@@ -57,7 +57,7 @@ func initConfig() {
 dsn=""
 [log]
 verbose=0
-pretty=0xn
+pretty=0
 `)
 	logger.CheckErr(viper.ReadConfig(bytes.NewBuffer(defaultConfig)))
 

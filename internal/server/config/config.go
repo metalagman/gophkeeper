@@ -1,10 +1,14 @@
 package config
 
-import "gophkeeper/pkg/logger"
+import (
+	"gophkeeper/pkg/grpcserver"
+	"gophkeeper/pkg/logger"
+)
 
 type Config struct {
-	DB     DatabaseConfig `mapstructure:"db"`
-	Logger logger.Config  `mapstructure:"log"`
+	GRPC   grpcserver.Config `mapstructure:"grpc"`
+	DB     DatabaseConfig    `mapstructure:"db"`
+	Logger logger.Config     `mapstructure:"log"`
 }
 
 type DatabaseConfig struct {
