@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"gophkeeper/internal/server/config"
+	"gophkeeper/internal/server/grpcservice"
 	"gophkeeper/pkg/grpcserver"
 	"gophkeeper/pkg/logger"
 )
@@ -21,6 +22,9 @@ func New(cfg config.Config) (*App, error) {
 	if err := s.Start(); err != nil {
 		return nil, fmt.Errorf("grpc: %w", err)
 	}
+
+	as := grpcservice.NewAuth()
+	s.InitServices(as.Init())
 
 	a := &App{
 		config: cfg,
