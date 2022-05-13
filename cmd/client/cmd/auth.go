@@ -3,11 +3,11 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gophkeeper/pkg/logger"
 	"os"
-
-	"github.com/spf13/cobra"
+	"path/filepath"
 )
 
 // authCmd represents the auth command
@@ -56,14 +56,25 @@ func forgetAuth(cmd *cobra.Command, args []string) {
 	cfgDir, err := os.UserConfigDir()
 	logger.CheckErr(err)
 
+	cfgDir = filepath.Join(cfgDir, "gophkeeper")
+	logger.CheckErr(ensureDir(cfgDir))
+
 	authCfg := viper.New()
-	authCfg.SetConfigName("auth")
 	authCfg.SetConfigType("toml")
-	authCfg.AddConfigPath(fmt.Sprintf("%s/gophkeeper", cfgDir))
 	var defaultConfig = []byte(`
 [auth]
 token=""
 `)
 	logger.CheckErr(authCfg.ReadConfig(bytes.NewBuffer(defaultConfig)))
-	logger.CheckErr(authCfg.WriteConfig())
+	logger.CheckErr(authCfg.WriteConfigAs(filepath.Join(cfgDir, "auth.toml")))
+}
+
+func ensureDir(dirName string) error {
+	if _, err := os.Stat(dirName); err == nil {
+		return nil
+	}
+	if err := os.MkdirAll(dirName, os.ModePerm); err != nil {
+		return fmt.Errorf("mkdir: %w", err)
+	}
+	return nil
 }
