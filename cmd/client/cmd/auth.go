@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/spf13/viper"
 	"gophkeeper/pkg/logger"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -38,9 +42,7 @@ var authForgetCmd = &cobra.Command{
 	Use:   "forget",
 	Short: "Forget current authorization",
 	Long:  `Allows you to forget current authorization`,
-	Run: func(cmd *cobra.Command, args []string) {
-
-	},
+	Run:   forgetAuth,
 }
 
 func init() {
@@ -48,4 +50,20 @@ func init() {
 	authCmd.AddCommand(authRegisterCmd)
 	authCmd.AddCommand(authLoginCmd)
 	authCmd.AddCommand(authForgetCmd)
+}
+
+func forgetAuth(cmd *cobra.Command, args []string) {
+	cfgDir, err := os.UserConfigDir()
+	logger.CheckErr(err)
+
+	authCfg := viper.New()
+	authCfg.SetConfigName("auth")
+	authCfg.SetConfigType("toml")
+	authCfg.AddConfigPath(fmt.Sprintf("%s/gophkeeper", cfgDir))
+	var defaultConfig = []byte(`
+[auth]
+token=""
+`)
+	logger.CheckErr(authCfg.ReadConfig(bytes.NewBuffer(defaultConfig)))
+	logger.CheckErr(authCfg.WriteConfig())
 }
