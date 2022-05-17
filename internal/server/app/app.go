@@ -1,9 +1,12 @@
 package app
 
 import (
+	"database/sql"
 	"fmt"
 	"gophkeeper/internal/server/config"
 	"gophkeeper/internal/server/grpcservice"
+	"gophkeeper/internal/server/migrate"
+	"gophkeeper/internal/server/storage/postgres"
 	"gophkeeper/pkg/grpcserver"
 	"gophkeeper/pkg/logger"
 )
@@ -18,12 +21,29 @@ type App struct {
 func New(cfg config.Config) (*App, error) {
 	l := *logger.Global()
 
+	db, err := sql.Open("postgres", cfg.DB.DSN)
+	if err != nil {
+		return nil, fmt.Errorf("db open: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("db ping: %w", err)
+	}
+	if err := migrate.Up(db); err != nil {
+		return nil, fmt.Errorf("migrate up: %w", err)
+	}
+
+	users, err := postgres.NewUserRepository(db)
+	if err != nil {
+		return nil, fmt.Errorf("user repository: %w", err)
+	}
+
 	s := grpcserver.New(cfg.GRPC)
 	if err := s.Start(); err != nil {
 		return nil, fmt.Errorf("grpc: %w", err)
 	}
 
-	as := grpcservice.NewAuth()
+	as := grpcservice.NewAuth(users)
 	s.InitServices(as.Init())
 
 	a := &App{

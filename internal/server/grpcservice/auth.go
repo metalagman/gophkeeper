@@ -4,15 +4,20 @@ import (
 	"context"
 	"google.golang.org/grpc"
 	pb "gophkeeper/api/proto"
+	"gophkeeper/internal/server/storage"
 	"gophkeeper/pkg/grpcserver"
 )
 
 type Auth struct {
 	pb.UnimplementedAuthServer
+
+	users storage.UserRepository
 }
 
-func NewAuth() *Auth {
-	return &Auth{}
+func NewAuth(u storage.UserRepository) *Auth {
+	return &Auth{
+		users: u,
+	}
 }
 
 func (s Auth) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.RegisterResponse, error) {
