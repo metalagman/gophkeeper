@@ -7,17 +7,23 @@ import (
 	"gophkeeper/internal/server/model"
 	"gophkeeper/internal/server/storage"
 	"gophkeeper/pkg/grpcserver"
+	"gophkeeper/pkg/token"
+	"time"
 )
+
+const tokenLifetime = time.Hour * 24 * 365
 
 type Auth struct {
 	pb.UnimplementedAuthServer
 
 	users storage.UserRepository
+	token token.Manager
 }
 
-func NewAuth(u storage.UserRepository) *Auth {
+func NewAuth(u storage.UserRepository, tm token.Manager) *Auth {
 	return &Auth{
 		users: u,
+		token: tm,
 	}
 }
 
@@ -32,8 +38,13 @@ func (s Auth) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 		return nil, err
 	}
 
+	t, err := s.token.Issue(u, tokenLifetime)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.RegisterResponse{
-		Token: "change me",
+		Token: t,
 	}, nil
 }
 
@@ -43,8 +54,13 @@ func (s Auth) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginRes
 		return nil, err
 	}
 
+	t, err := s.token.Issue(u, tokenLifetime)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.LoginResponse{
-		Token: "change me",
+		Token: t,
 	}, nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"gophkeeper/internal/server/storage/postgres"
 	"gophkeeper/pkg/grpcserver"
 	"gophkeeper/pkg/logger"
+	"gophkeeper/pkg/token"
 )
 
 type App struct {
@@ -33,6 +34,11 @@ func New(cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("migrate up: %w", err)
 	}
 
+	tm, err := token.NewJWT(cfg.Security.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("token manager: %w", err)
+	}
+
 	users, err := postgres.NewUserRepository(db)
 	if err != nil {
 		return nil, fmt.Errorf("user repository: %w", err)
@@ -43,7 +49,7 @@ func New(cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("grpc: %w", err)
 	}
 
-	as := grpcservice.NewAuth(users)
+	as := grpcservice.NewAuth(users, tm)
 	s.InitServices(as.Init())
 
 	a := &App{

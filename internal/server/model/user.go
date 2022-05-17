@@ -9,3 +9,7 @@ type User struct {
 	Email    string    `json:"email"`
 	Password string    `json:"-"`
 }
+
+func (m *User) Identity() string {
+	return m.ID.String()
+}
