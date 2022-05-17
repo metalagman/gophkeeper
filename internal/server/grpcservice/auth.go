@@ -4,6 +4,7 @@ import (
 	"context"
 	"google.golang.org/grpc"
 	pb "gophkeeper/api/proto"
+	"gophkeeper/internal/server/model"
 	"gophkeeper/internal/server/storage"
 	"gophkeeper/pkg/grpcserver"
 )
@@ -21,13 +22,30 @@ func NewAuth(u storage.UserRepository) *Auth {
 }
 
 func (s Auth) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	u := &model.User{
+		Email:    request.GetEmail(),
+		Password: request.GetPassword(),
+	}
+
+	u, err := s.users.Create(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.RegisterResponse{
+		Token: "change me",
+	}, nil
 }
 
 func (s Auth) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	u, err := s.users.ReadByEmailAndPassword(ctx, request.GetEmail(), request.GetPassword())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.LoginResponse{
+		Token: "change me",
+	}, nil
 }
 
 func (s *Auth) Init() grpcserver.ServiceInit {
