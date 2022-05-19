@@ -21,21 +21,19 @@ var authCmd = &cobra.Command{
 }
 
 var authRegisterCmd = &cobra.Command{
-	Use:   "register",
+	Use:   "register [email] [password]",
 	Short: "Register on the remote server",
 	Long:  `Allows you to register on the remote server`,
-	Run: func(cmd *cobra.Command, args []string) {
-
-	},
+	Args:  cobra.ExactArgs(2),
+	Run:   register,
 }
 
 var authLoginCmd = &cobra.Command{
-	Use:   "login",
+	Use:   "login [email] [password]",
 	Short: "Login on the remote server",
 	Long:  `Allows you to login on the remote server`,
-	Run: func(cmd *cobra.Command, args []string) {
-
-	},
+	Args:  cobra.ExactArgs(2),
+	Run:   login,
 }
 
 var authForgetCmd = &cobra.Command{
@@ -52,12 +50,18 @@ func init() {
 	authCmd.AddCommand(authForgetCmd)
 }
 
-func forgetAuth(cmd *cobra.Command, args []string) {
-	cfgDir, err := os.UserConfigDir()
-	logger.CheckErr(err)
+func register(cmd *cobra.Command, args []string) {
+	email, password := args[0], args[1]
+	fmt.Println(email, password)
+}
 
-	cfgDir = filepath.Join(cfgDir, "gophkeeper")
-	logger.CheckErr(ensureDir(cfgDir))
+func login(cmd *cobra.Command, args []string) {
+	email, password := args[0], args[1]
+	fmt.Println(email, password)
+}
+
+func forgetAuth(cmd *cobra.Command, args []string) {
+	cfgDir := appDir("gophkeeper")
 
 	authCfg := viper.New()
 	authCfg.SetConfigType("toml")
@@ -77,4 +81,12 @@ func ensureDir(dirName string) error {
 		return fmt.Errorf("mkdir: %w", err)
 	}
 	return nil
+}
+
+func appDir(app string) string {
+	cfgDir, err := os.UserConfigDir()
+	logger.CheckErr(err)
+	cfgDir = filepath.Join(cfgDir, app)
+	logger.CheckErr(ensureDir(cfgDir))
+	return cfgDir
 }

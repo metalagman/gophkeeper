@@ -51,6 +51,7 @@ func initDotEnv() {
 
 func initConfig() {
 	viper.SetConfigType("toml")
+
 	var defaultConfig = []byte(`
 [log]
 verbose=0
