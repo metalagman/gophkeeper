@@ -6,6 +6,7 @@ import (
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc"
 	"gophkeeper/pkg/logger"
+	"log"
 	"net"
 )
 
@@ -80,6 +81,7 @@ func (s *Server) RegisterServices(services ...Service) {
 }
 
 func (s *Server) Start() error {
+	log.Printf("%+v", s)
 	lis, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
@@ -101,6 +103,7 @@ func (s *Server) Start() error {
 	s.RegisterServices(s.services...)
 
 	go func() {
+		s.logger.Info().Str("host", s.listenAddr).Msg("Listening incoming GRPC connections")
 		if err := s.server.Serve(lis); err != nil && err != grpc.ErrServerStopped {
 			s.logger.Fatal().Err(err).Send()
 		}

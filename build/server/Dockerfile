@@ -14,5 +14,5 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /go/src/app/bin/* /app/
 COPY --from=build /go/src/app/scripts/wait-for-it.sh /app/
 RUN chmod +x /app/*
-EXPOSE 80/tcp
+EXPOSE 50051/tcp
 CMD /app/gk serve

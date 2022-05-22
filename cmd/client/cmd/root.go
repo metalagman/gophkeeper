@@ -50,6 +50,7 @@ func init() {
 
 	//rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "set high log verbosity")
+	rootCmd.PersistentFlags().StringP("server", "s", "localhost:50051", "remote server address and port")
 }
 
 func initDotEnv() {
@@ -62,6 +63,8 @@ func initConfig() {
 	viper.SetConfigType("toml")
 
 	var defaultConfig = []byte(`
+[server]
+addr="localhost:50051"
 [log]
 verbose=0
 pretty=1
@@ -72,6 +75,7 @@ pretty=1
 	viper.AutomaticEnv()
 
 	logger.CheckErr(viper.BindPFlag("log.verbose", rootCmd.PersistentFlags().Lookup("verbose")))
+	logger.CheckErr(viper.BindPFlag("grpc.addr", rootCmd.PersistentFlags().Lookup("server")))
 
 	logger.CheckErr(viper.Unmarshal(&cfg))
 }

@@ -21,7 +21,7 @@ services:
     depends_on:
       - server_deps
     ports:
-        - "80:80"
+        - "50051:50051"
     command: ["/app/gk", "serve", "-v"]
 
   db:

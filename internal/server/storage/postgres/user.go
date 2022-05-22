@@ -74,7 +74,7 @@ func (r *UserRepository) ReadByEmailAndPassword(ctx context.Context, email strin
 	const SQL = `
 		SELECT id, email
 		FROM users
-		WHERE name = $1 
+		WHERE email = $1 
 		AND password = crypt($2, password);
 `
 	user := &model.User{}

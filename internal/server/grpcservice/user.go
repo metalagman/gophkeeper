@@ -3,9 +3,12 @@ package grpcservice
 import (
 	"context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	pb "gophkeeper/api/proto"
 	"gophkeeper/internal/server/model"
 	"gophkeeper/internal/server/storage"
+	"gophkeeper/pkg/apperr"
 	"gophkeeper/pkg/token"
 	"time"
 )
@@ -38,8 +41,13 @@ func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 	}
 
 	t, err := s.token.Issue(u, tokenLifetime)
-	if err != nil {
-		return nil, err
+	switch err {
+	case nil:
+		// all is ok
+	case apperr.ErrConflict:
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	default:
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.RegisterResponse{
@@ -54,8 +62,13 @@ func (s User) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginRes
 	}
 
 	t, err := s.token.Issue(u, tokenLifetime)
-	if err != nil {
-		return nil, err
+	switch err {
+	case nil:
+		// all is ok
+	case apperr.ErrNotFound:
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	default:
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.LoginResponse{

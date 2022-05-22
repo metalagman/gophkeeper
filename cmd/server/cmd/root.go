@@ -53,6 +53,8 @@ func initDotEnv() {
 func initConfig() {
 	viper.SetConfigType("toml")
 	var defaultConfig = []byte(`
+[grpc]
+listen_addr="localhost:50051"
 [db]
 dsn=""
 [log]

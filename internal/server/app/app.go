@@ -50,7 +50,7 @@ func New(cfg config.Config) (*App, error) {
 	s := grpcserver.New(
 		grpcserver.WithListenAddr(cfg.GRPC.ListenAddr),
 		grpcserver.WithServices(as, ks),
-		grpcserver.WithAuthFunc(grpcservice.BuildAuthFunc(tm)),
+		//grpcserver.WithAuthFunc(grpcservice.BuildAuthFunc(tm)),
 	)
 
 	if err := s.Start(); err != nil {
