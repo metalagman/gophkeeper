@@ -65,8 +65,6 @@ func New(opts ...ServerOption) *Server {
 		o(s)
 	}
 
-	s.RegisterServices(s.services...)
-
 	if s.authFunc != nil {
 		s.unaryInterceptors = append(s.unaryInterceptors, grpc_auth.UnaryServerInterceptor(s.authFunc))
 		s.streamInterceptors = append(s.streamInterceptors, grpc_auth.StreamServerInterceptor(s.authFunc))
@@ -99,6 +97,8 @@ func (s *Server) Start() error {
 			),
 		),
 	)
+
+	s.RegisterServices(s.services...)
 
 	go func() {
 		if err := s.server.Serve(lis); err != nil && err != grpc.ErrServerStopped {

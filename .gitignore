@@ -15,6 +15,7 @@
 # vendor/
 
 bin
+tmp
 .env
 .idea
 coverage.out

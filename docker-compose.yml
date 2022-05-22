@@ -1,0 +1,35 @@
+version: '3.1'
+
+services:
+  server_deps:
+    image: dadarek/wait-for-dependencies
+    depends_on:
+      - db
+    environment:
+      SLEEP_LENGTH: 1
+      TIMEOUT_LENGTH: 120
+    command: db:5432
+
+  server:
+    restart: unless-stopped
+    env_file:
+      - ./configs/env/server.env
+    build:
+      context: ./
+      dockerfile: ./build/server/Dockerfile
+    image: gk-server:latest
+    depends_on:
+      - server_deps
+    ports:
+        - "80:80"
+    command: ["/app/gk", "serve", "-v"]
+
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    env_file:
+      - ./configs/env/database.env
+    ports:
+      - '5432:5432'
+    volumes:
+      - ../.tmp/postgres_data:/var/lib/postgresql/data
