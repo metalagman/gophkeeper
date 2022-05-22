@@ -15,3 +15,8 @@ type UserRepository interface {
 	// Read instance of model.User
 	Read(ctx context.Context, id uuid.UUID) (*model.User, error)
 }
+
+type SecretRepository interface {
+	// Create a new model.Secret
+	Create(ctx context.Context, m *model.Secret) (*model.Secret, error)
+}

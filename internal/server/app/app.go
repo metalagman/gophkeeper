@@ -44,13 +44,18 @@ func New(cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("user repository: %w", err)
 	}
 
+	secrets, err := postgres.NewSecretRepository(db)
+	if err != nil {
+		return nil, fmt.Errorf("user repository: %w", err)
+	}
+
 	as := grpcservice.NewUser(users, tm)
-	ks := grpcservice.NewKeeper()
+	ks := grpcservice.NewKeeper(secrets)
 
 	s := grpcserver.New(
 		grpcserver.WithListenAddr(cfg.GRPC.ListenAddr),
 		grpcserver.WithServices(as, ks),
-		//grpcserver.WithAuthFunc(grpcservice.BuildAuthFunc(tm)),
+		grpcserver.WithAuthFunc(grpcservice.BuildAuthFunc(tm)),
 	)
 
 	if err := s.Start(); err != nil {
