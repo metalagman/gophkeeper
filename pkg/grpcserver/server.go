@@ -2,45 +2,103 @@ package grpcserver
 
 import (
 	"fmt"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc"
 	"gophkeeper/pkg/logger"
 	"net"
 )
 
 type Server struct {
-	config Config
-	logger *logger.Logger
-	server *grpc.Server
+	listenAddr string
+
+	logger             *logger.Logger
+	server             *grpc.Server
+	services           []Service
+	unaryInterceptors  []grpc.UnaryServerInterceptor
+	streamInterceptors []grpc.StreamServerInterceptor
+	authFunc           grpc_auth.AuthFunc
 }
 
-type Config struct {
-	ListenAddr string `mapstructure:"listen_addr"`
+type ServerOption func(*Server)
 
-	ServerOptions []grpc.ServerOption
+func WithListenAddr(a string) ServerOption {
+	return func(server *Server) {
+		server.listenAddr = a
+	}
 }
 
-type ServiceInit func(grpc.ServiceRegistrar)
+func WithAuthFunc(af grpc_auth.AuthFunc) ServerOption {
+	return func(server *Server) {
+		server.authFunc = af
+	}
+}
 
-func New(cfg Config) *Server {
+func WithUnaryInterceptors(in ...grpc.UnaryServerInterceptor) ServerOption {
+	return func(server *Server) {
+		server.unaryInterceptors = append(server.unaryInterceptors, in...)
+	}
+}
+
+func WithStreamInterceptors(in ...grpc.StreamServerInterceptor) ServerOption {
+	return func(server *Server) {
+		server.streamInterceptors = append(server.streamInterceptors, in...)
+	}
+}
+
+func WithServices(in ...Service) ServerOption {
+	return func(server *Server) {
+		server.services = append(server.services, in...)
+	}
+}
+
+type Service interface {
+	RegisterService(grpc.ServiceRegistrar)
+}
+
+func New(opts ...ServerOption) *Server {
 	s := &Server{
-		config: cfg,
 		logger: logger.Global(),
 	}
-	s.server = grpc.NewServer(cfg.ServerOptions...)
+
+	for _, o := range opts {
+		o(s)
+	}
+
+	s.RegisterServices(s.services...)
+
+	if s.authFunc != nil {
+		s.unaryInterceptors = append(s.unaryInterceptors, grpc_auth.UnaryServerInterceptor(s.authFunc))
+		s.streamInterceptors = append(s.streamInterceptors, grpc_auth.StreamServerInterceptor(s.authFunc))
+	}
+
 	return s
 }
 
-func (s *Server) InitServices(init ...ServiceInit) {
-	for _, f := range init {
-		f(s.server)
+func (s *Server) RegisterServices(services ...Service) {
+	for _, svc := range services {
+		svc.RegisterService(s.server)
 	}
 }
 
 func (s *Server) Start() error {
-	lis, err := net.Listen("tcp", s.config.ListenAddr)
+	lis, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
+
+	s.server = grpc.NewServer(
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				s.unaryInterceptors...,
+			),
+		),
+		grpc.StreamInterceptor(
+			grpc_middleware.ChainStreamServer(
+				s.streamInterceptors...,
+			),
+		),
+	)
 
 	go func() {
 		if err := s.server.Serve(lis); err != nil && err != grpc.ErrServerStopped {

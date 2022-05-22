@@ -1,17 +1,13 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	pb "gophkeeper/api/proto"
 	"gophkeeper/pkg/logger"
 	"os"
-	"path/filepath"
 )
 
 // authCmd represents the auth command
@@ -67,48 +63,55 @@ func register(cmd *cobra.Command, args []string) {
 
 	ctx := context.Background()
 
-	cl := pb.NewAuthClient(conn)
+	cl := pb.NewUserClient(conn)
 	resp, err := cl.Register(ctx, &pb.RegisterRequest{
 		Email:    email,
 		Password: password,
 	})
 
 	logger.CheckErr(err)
-	logger.Global().Info().Msgf("token: %s", resp.GetToken())
+	vAuth.Set("email", email)
+	vAuth.Set("token", resp.GetToken())
+	logger.CheckErr(vAuth.WriteConfig())
 }
 
 func login(cmd *cobra.Command, args []string) {
 	email, password := args[0], args[1]
-	fmt.Println(email, password)
+
+	// real client for mocked service
+	conn, err := grpc.Dial(cfg.Server.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	logger.CheckErr(err)
+
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+
+	ctx := context.Background()
+
+	cl := pb.NewUserClient(conn)
+	resp, err := cl.Login(ctx, &pb.LoginRequest{
+		Email:    email,
+		Password: password,
+	})
+
+	logger.CheckErr(err)
+	vAuth.Set("email", email)
+	vAuth.Set("token", resp.GetToken())
+	logger.CheckErr(vAuth.WriteConfig())
 }
 
 func forgetAuth(cmd *cobra.Command, args []string) {
-	cfgDir := appDir("gophkeeper")
+	l := logger.Global()
 
-	authCfg := viper.New()
-	authCfg.SetConfigType("toml")
-	var defaultConfig = []byte(`
-[auth]
-token=""
-`)
-	logger.CheckErr(authCfg.ReadConfig(bytes.NewBuffer(defaultConfig)))
-	logger.CheckErr(authCfg.WriteConfigAs(filepath.Join(cfgDir, "auth.toml")))
-}
-
-func ensureDir(dirName string) error {
-	if _, err := os.Stat(dirName); err == nil {
-		return nil
+	if vAuth.GetString("token") == "" {
+		l.Warn().Msg("Auth is already empty")
+		os.Exit(0)
 	}
-	if err := os.MkdirAll(dirName, os.ModePerm); err != nil {
-		return fmt.Errorf("mkdir: %w", err)
-	}
-	return nil
-}
 
-func appDir(app string) string {
-	cfgDir, err := os.UserConfigDir()
-	logger.CheckErr(err)
-	cfgDir = filepath.Join(cfgDir, app)
-	logger.CheckErr(ensureDir(cfgDir))
-	return cfgDir
+	vAuth.Set("token", "")
+	if err := vAuth.WriteConfig(); err != nil {
+		l.Fatal().Err(err)
+	}
+
+	l.Info().Msg("Done")
 }

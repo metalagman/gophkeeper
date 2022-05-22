@@ -4,7 +4,7 @@ option go_package = "gophkeeper/api/proto";
 
 package api;
 
-service Auth {
+service User {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
 }

@@ -44,13 +44,18 @@ func New(cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("user repository: %w", err)
 	}
 
-	s := grpcserver.New(cfg.GRPC)
+	as := grpcservice.NewUser(users, tm)
+	ks := grpcservice.NewKeeper()
+
+	s := grpcserver.New(
+		grpcserver.WithListenAddr(cfg.GRPC.ListenAddr),
+		grpcserver.WithServices(as, ks),
+		grpcserver.WithAuthFunc(grpcservice.BuildAuthFunc(tm)),
+	)
+
 	if err := s.Start(); err != nil {
 		return nil, fmt.Errorf("grpc: %w", err)
 	}
-
-	as := grpcservice.NewAuth(users, tm)
-	s.InitServices(as.Init())
 
 	a := &App{
 		config: cfg,

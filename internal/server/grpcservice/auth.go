@@ -2,70 +2,26 @@ package grpcservice
 
 import (
 	"context"
-	"google.golang.org/grpc"
-	pb "gophkeeper/api/proto"
-	"gophkeeper/internal/server/model"
-	"gophkeeper/internal/server/storage"
-	"gophkeeper/pkg/grpcserver"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gophkeeper/pkg/token"
-	"time"
+	"gophkeeper/pkg/usercontext"
 )
 
-const tokenLifetime = time.Hour * 24 * 365
+func BuildAuthFunc(tok token.Manager) grpc_auth.AuthFunc {
+	return func(ctx context.Context) (context.Context, error) {
+		mdt, err := grpc_auth.AuthFromMD(ctx, "bearer")
+		if err != nil {
+			return nil, err
+		}
 
-type Auth struct {
-	pb.UnimplementedAuthServer
+		uid, err := tok.Decode(mdt)
+		if err != nil {
+			return nil, status.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
+		}
 
-	users storage.UserRepository
-	token token.Manager
-}
-
-func NewAuth(u storage.UserRepository, tm token.Manager) *Auth {
-	return &Auth{
-		users: u,
-		token: tm,
-	}
-}
-
-func (s Auth) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	u := &model.User{
-		Email:    request.GetEmail(),
-		Password: request.GetPassword(),
-	}
-
-	u, err := s.users.Create(ctx, u)
-	if err != nil {
-		return nil, err
-	}
-
-	t, err := s.token.Issue(u, tokenLifetime)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.RegisterResponse{
-		Token: t,
-	}, nil
-}
-
-func (s Auth) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
-	u, err := s.users.ReadByEmailAndPassword(ctx, request.GetEmail(), request.GetPassword())
-	if err != nil {
-		return nil, err
-	}
-
-	t, err := s.token.Issue(u, tokenLifetime)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.LoginResponse{
-		Token: t,
-	}, nil
-}
-
-func (s *Auth) Init() grpcserver.ServiceInit {
-	return func(registrar grpc.ServiceRegistrar) {
-		pb.RegisterAuthServer(registrar, s)
+		ctx = usercontext.WriteUID(ctx, uid.Identity())
+		return ctx, nil
 	}
 }

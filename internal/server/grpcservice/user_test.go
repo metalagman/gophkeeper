@@ -52,10 +52,10 @@ func TestIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	svc := NewAuth(u, tm)
+	svc := NewUser(u, tm)
 
 	srv := grpc.NewServer()
-	pb.RegisterAuthServer(srv, svc)
+	pb.RegisterUserServer(srv, svc)
 	go func() {
 		if err := srv.Serve(l); err != nil && err != grpc.ErrServerStopped {
 			panic(err) // We're in a goroutine - we can't t.Fatal/t.Error.
@@ -72,7 +72,7 @@ func TestIntegration(t *testing.T) {
 		_ = conn.Close()
 	}(conn)
 
-	cl := pb.NewAuthClient(conn)
+	cl := pb.NewUserClient(conn)
 
 	resp, err := cl.Register(ctx, &pb.RegisterRequest{
 		Email:    "user1@example.org",

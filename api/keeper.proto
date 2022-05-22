@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option go_package = "gophkeeper/api/proto";
+
+package api;
+
+message Secret {
+  string name = 1;
+  string type = 2;
+  bytes content = 3;
+}
+
+message SecretDescription {
+  string name = 1;
+  string type = 2;
+}
+
+service Keeper {
+  rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
+  rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse);
+  rpc ReadSecret(ReadSecretRequest) returns (ReadSecretResponse);
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+}
+
+message ListSecretsRequest {
+}
+
+message ListSecretsResponse {
+  repeated SecretDescription secrets = 1;
+}
+
+
+message CreateSecretRequest {
+}
+
+message CreateSecretResponse {
+}
+
+message ReadSecretRequest {
+}
+
+message ReadSecretResponse {
+}
+
+message DeleteSecretRequest {
+}
+
+message DeleteSecretResponse {
+}

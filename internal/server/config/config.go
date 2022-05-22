@@ -1,15 +1,18 @@
 package config
 
 import (
-	"gophkeeper/pkg/grpcserver"
 	"gophkeeper/pkg/logger"
 )
 
 type Config struct {
-	GRPC     grpcserver.Config `mapstructure:"grpc"`
-	DB       DatabaseConfig    `mapstructure:"db"`
-	Security SecurityConfig    `mapstructure:"security"`
-	Logger   logger.Config     `mapstructure:"log"`
+	GRPC     GRPCConfig     `mapstructure:"grpc"`
+	DB       DatabaseConfig `mapstructure:"db"`
+	Security SecurityConfig `mapstructure:"security"`
+	Logger   logger.Config  `mapstructure:"log"`
+}
+
+type GRPCConfig struct {
+	ListenAddr string `mapstructure:"listen_addr"`
 }
 
 type DatabaseConfig struct {

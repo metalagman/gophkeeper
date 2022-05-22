@@ -9,13 +9,21 @@ import (
 	"github.com/spf13/viper"
 	"gophkeeper/internal/client/config"
 	"gophkeeper/pkg/logger"
+	"gophkeeper/pkg/userconfig"
 	"gophkeeper/pkg/version"
 	"io/fs"
 	"os"
 	"strings"
 )
 
-var cfg = config.Config{}
+const (
+	appName = "gkcli"
+)
+
+var (
+	cfg   = config.Config{}
+	vAuth *viper.Viper
+)
 
 var rootCmd = &cobra.Command{
 	Use:   os.Args[0],
@@ -38,6 +46,7 @@ func init() {
 	cobra.OnInitialize(initDotEnv)
 	cobra.OnInitialize(initConfig)
 	cobra.OnInitialize(initLogger)
+	cobra.OnInitialize(initAuth)
 
 	//rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "set high log verbosity")
@@ -65,6 +74,18 @@ pretty=1
 	logger.CheckErr(viper.BindPFlag("log.verbose", rootCmd.PersistentFlags().Lookup("verbose")))
 
 	logger.CheckErr(viper.Unmarshal(&cfg))
+}
+
+func initAuth() {
+	uc, err := userconfig.New(appName, "toml")
+	logger.CheckErr(err)
+	vAuth = uc.Viper("auth")
+
+	l := logger.Global()
+	l.Debug().
+		Str("email", viper.GetString("email")).
+		Str("token", viper.GetString("token")).
+		Msg("Auth")
 }
 
 func initLogger() {
