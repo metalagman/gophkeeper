@@ -21,6 +21,10 @@ type Server struct {
 	authFunc           grpc_auth.AuthFunc
 }
 
+func (s *Server) ListenAddr() string {
+	return s.listenAddr
+}
+
 type ServerOption func(*Server)
 
 func WithListenAddr(a string) ServerOption {
@@ -86,6 +90,9 @@ func (s *Server) Start() error {
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
+
+	// required for testing
+	s.listenAddr = lis.Addr().String()
 
 	s.server = grpc.NewServer(
 		grpc.UnaryInterceptor(
