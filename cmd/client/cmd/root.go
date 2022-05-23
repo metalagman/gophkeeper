@@ -78,6 +78,7 @@ func initAuth() {
 
 func initLogger() {
 	logger.NewGlobal(logger.Config{
+		Pretty:     true,
 		Verbose:    viper.GetBool("log_verbose"),
 		TimeFormat: time.Kitchen,
 	})
