@@ -18,5 +18,11 @@ type UserRepository interface {
 
 type SecretRepository interface {
 	// Create a new model.Secret
-	Create(ctx context.Context, m *model.Secret) (*model.Secret, error)
+	Create(ctx context.Context, uid uuid.UUID, m *model.Secret) (*model.Secret, error)
+	// ReadByName specified secret
+	ReadByName(ctx context.Context, uid uuid.UUID, name string) (*model.Secret, error)
+	// DeleteByName specified secret if available
+	DeleteByName(ctx context.Context, uid uuid.UUID, name string) error
+	// List all secrets of specified user
+	List(ctx context.Context, uid uuid.UUID) ([]*model.Secret, error)
 }

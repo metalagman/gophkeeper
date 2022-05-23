@@ -2,6 +2,7 @@ package grpcservice
 
 import (
 	"context"
+	"github.com/google/uuid"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,7 +22,12 @@ func BuildAuthFunc(tok token.Manager) grpc_auth.AuthFunc {
 			return nil, status.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
 		}
 
-		ctx = usercontext.WriteUID(ctx, uid.Identity())
+		u, err := uuid.Parse(uid.Identity())
+		if err != nil {
+			return nil, status.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
+		}
+
+		ctx = usercontext.WriteUID(ctx, u)
 		return ctx, nil
 	}
 }

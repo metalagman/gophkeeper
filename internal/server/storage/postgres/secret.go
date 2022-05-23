@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	pg "github.com/lib/pq"
 	"gophkeeper/internal/server/model"
@@ -27,7 +28,7 @@ func NewSecretRepository(db *sql.DB) (*SecretRepository, error) {
 }
 
 // Create implementation of interface storage.SecretRepository
-func (r *SecretRepository) Create(ctx context.Context, secret *model.Secret) (*model.Secret, error) {
+func (r *SecretRepository) Create(ctx context.Context, uid uuid.UUID, secret *model.Secret) (*model.Secret, error) {
 	const SQL = `
 		INSERT INTO secrets (user_id, type, name, content)
 		VALUES ($1, $2, $3, $4)
@@ -46,4 +47,19 @@ func (r *SecretRepository) Create(ctx context.Context, secret *model.Secret) (*m
 	}
 
 	return secret, nil
+}
+
+func (r *SecretRepository) ReadByName(ctx context.Context, uid uuid.UUID, name string) (*model.Secret, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *SecretRepository) DeleteByName(ctx context.Context, uid uuid.UUID, name string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *SecretRepository) List(ctx context.Context, uid uuid.UUID) ([]*model.Secret, error) {
+	//TODO implement me
+	panic("implement me")
 }
