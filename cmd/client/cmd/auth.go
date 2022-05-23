@@ -52,18 +52,11 @@ func init() {
 
 func register(cmd *cobra.Command, args []string) {
 	email, password := args[0], args[1]
-
-	// real client for mocked service
-	conn, err := grpc.Dial(cfg.Server.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	logger.CheckErr(err)
-
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-
 	ctx := context.Background()
 
-	cl := pb.NewUserClient(conn)
+	cl, stop := getUserClient()
+	defer stop()
+
 	resp, err := cl.Register(ctx, &pb.RegisterRequest{
 		Email:    email,
 		Password: password,
@@ -77,18 +70,11 @@ func register(cmd *cobra.Command, args []string) {
 
 func login(cmd *cobra.Command, args []string) {
 	email, password := args[0], args[1]
-
-	// real client for mocked service
-	conn, err := grpc.Dial(cfg.Server.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	logger.CheckErr(err)
-
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-
 	ctx := context.Background()
 
-	cl := pb.NewUserClient(conn)
+	cl, stop := getUserClient()
+	defer stop()
+
 	resp, err := cl.Login(ctx, &pb.LoginRequest{
 		Email:    email,
 		Password: password,
@@ -114,4 +100,21 @@ func forgetAuth(cmd *cobra.Command, args []string) {
 	}
 
 	l.Info().Msg("Done")
+}
+
+func getUserClient() (pb.UserClient, func()) {
+	// real client for mocked service
+	conn, err := grpc.Dial(
+		cfg.Server.Addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	logger.CheckErr(err)
+
+	stop := func() {
+		_ = conn.Close()
+	}
+
+	cl := pb.NewUserClient(conn)
+
+	return cl, stop
 }
