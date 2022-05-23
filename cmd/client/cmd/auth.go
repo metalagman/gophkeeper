@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	pb "gophkeeper/api/proto"
@@ -63,9 +64,9 @@ func register(cmd *cobra.Command, args []string) {
 	})
 
 	logger.CheckErr(err)
-	vAuth.Set("email", email)
-	vAuth.Set("token", resp.GetToken())
-	logger.CheckErr(vAuth.WriteConfig())
+	authViper.Set("email", email)
+	authViper.Set("token", resp.GetToken())
+	logger.CheckErr(authViper.WriteConfig())
 }
 
 func login(cmd *cobra.Command, args []string) {
@@ -81,21 +82,21 @@ func login(cmd *cobra.Command, args []string) {
 	})
 
 	logger.CheckErr(err)
-	vAuth.Set("email", email)
-	vAuth.Set("token", resp.GetToken())
-	logger.CheckErr(vAuth.WriteConfig())
+	authViper.Set("email", email)
+	authViper.Set("token", resp.GetToken())
+	logger.CheckErr(authViper.WriteConfig())
 }
 
 func forgetAuth(cmd *cobra.Command, args []string) {
 	l := logger.Global()
 
-	if vAuth.GetString("token") == "" {
+	if authViper.GetString("token") == "" {
 		l.Warn().Msg("Auth is already empty")
 		os.Exit(0)
 	}
 
-	vAuth.Set("token", "")
-	if err := vAuth.WriteConfig(); err != nil {
+	authViper.Set("token", "")
+	if err := authViper.WriteConfig(); err != nil {
 		l.Fatal().Err(err)
 	}
 
@@ -105,7 +106,7 @@ func forgetAuth(cmd *cobra.Command, args []string) {
 func getUserClient() (pb.UserClient, func()) {
 	// real client for mocked service
 	conn, err := grpc.Dial(
-		cfg.Server.Addr,
+		viper.GetString("server_addr"),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	logger.CheckErr(err)

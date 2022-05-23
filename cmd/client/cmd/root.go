@@ -1,19 +1,17 @@
 package cmd
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gophkeeper/internal/client/config"
 	"gophkeeper/pkg/logger"
 	"gophkeeper/pkg/userconfig"
 	"gophkeeper/pkg/version"
 	"io/fs"
 	"os"
-	"strings"
+	"time"
 )
 
 const (
@@ -21,8 +19,7 @@ const (
 )
 
 var (
-	cfg   = config.Config{}
-	vAuth *viper.Viper
+	authViper *viper.Viper
 )
 
 var rootCmd = &cobra.Command{
@@ -60,38 +57,28 @@ func initDotEnv() {
 }
 
 func initConfig() {
-	viper.SetConfigType("toml")
+	viper.SetDefault("server_addr", "localhost:50051")
+	viper.SetDefault("log_verbose", 1)
 
-	var defaultConfig = []byte(`
-[server]
-addr="localhost:50051"
-[log]
-verbose=0
-pretty=1
-`)
-	logger.CheckErr(viper.ReadConfig(bytes.NewBuffer(defaultConfig)))
-
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-
-	logger.CheckErr(viper.BindPFlag("log.verbose", rootCmd.PersistentFlags().Lookup("verbose")))
-	logger.CheckErr(viper.BindPFlag("grpc.addr", rootCmd.PersistentFlags().Lookup("server")))
-
-	logger.CheckErr(viper.Unmarshal(&cfg))
+	logger.CheckErr(viper.BindPFlag("log_verbose", rootCmd.PersistentFlags().Lookup("verbose")))
+	logger.CheckErr(viper.BindPFlag("server_addr", rootCmd.PersistentFlags().Lookup("server")))
 }
 
 func initAuth() {
 	uc, err := userconfig.New(appName, "toml")
 	logger.CheckErr(err)
-	vAuth = uc.Viper("auth")
+	authViper = uc.Viper("auth")
 
 	l := logger.Global()
 	l.Debug().
-		Str("email", viper.GetString("email")).
-		Str("token", viper.GetString("token")).
+		Str("email", authViper.GetString("email")).
+		Str("token", authViper.GetString("token")).
 		Msg("Auth")
 }
 
 func initLogger() {
-	logger.NewGlobal(cfg.Logger)
+	logger.NewGlobal(logger.Config{
+		Verbose:    viper.GetBool("log_verbose"),
+		TimeFormat: time.Kitchen,
+	})
 }

@@ -78,5 +78,6 @@ func TestIntegration(t *testing.T) {
 		Email:    "user1@example.org",
 		Password: "pass",
 	})
+	assert.NoError(t, err)
 	assert.Equal(t, resp.Token, "token1")
 }

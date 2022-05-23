@@ -33,9 +33,12 @@ func New(cfg Config) Logger {
 	if cfg.Verbose {
 		logLevel = zerolog.DebugLevel
 	}
+	if cfg.TimeFormat == "" {
+		cfg.TimeFormat = time.RFC3339
+	}
 	zl := log.Logger.Level(logLevel)
 	if cfg.Pretty {
-		zl = zl.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+		zl = zl.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: cfg.TimeFormat})
 	}
 
 	return Logger{zl}
