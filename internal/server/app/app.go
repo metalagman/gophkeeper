@@ -55,6 +55,7 @@ func New(cfg config.Config) (*App, error) {
 	s := grpcserver.New(
 		grpcserver.WithListenAddr(cfg.GRPC.ListenAddr),
 		grpcserver.WithServices(as, ks),
+		grpcserver.WithUnaryInterceptors(grpcservice.BuildUnaryInterceptors()...),
 		grpcserver.WithAuthFunc(grpcservice.BuildAuthFunc(tm)),
 	)
 
