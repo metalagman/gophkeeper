@@ -3,16 +3,16 @@ package grpcservice
 import (
 	"context"
 	"github.com/google/uuid"
-	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpcauth "github.com/grpc-ecosystem/go-grpc-middleware/v2/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gophkeeper/pkg/token"
 	"gophkeeper/pkg/usercontext"
 )
 
-func BuildAuthFunc(tok token.Manager) grpc_auth.AuthFunc {
+func BuildAuthFunc(tok token.Manager) grpcauth.AuthFunc {
 	return func(ctx context.Context) (context.Context, error) {
-		mdt, err := grpc_auth.AuthFromMD(ctx, "bearer")
+		mdt, err := grpcauth.AuthFromMD(ctx, "bearer")
 		if err != nil {
 			return nil, err
 		}

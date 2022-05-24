@@ -2,8 +2,8 @@ package grpcserver
 
 import (
 	"fmt"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	grpcauth "github.com/grpc-ecosystem/go-grpc-middleware/v2/auth"
 	"google.golang.org/grpc"
 	"gophkeeper/pkg/logger"
 	"log"
@@ -18,7 +18,7 @@ type Server struct {
 	services           []Service
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
-	authFunc           grpc_auth.AuthFunc
+	authFunc           grpcauth.AuthFunc
 }
 
 func (s *Server) ListenAddr() string {
@@ -33,7 +33,7 @@ func WithListenAddr(a string) ServerOption {
 	}
 }
 
-func WithAuthFunc(af grpc_auth.AuthFunc) ServerOption {
+func WithAuthFunc(af grpcauth.AuthFunc) ServerOption {
 	return func(server *Server) {
 		server.authFunc = af
 	}
@@ -71,8 +71,8 @@ func New(opts ...ServerOption) *Server {
 	}
 
 	if s.authFunc != nil {
-		s.unaryInterceptors = append(s.unaryInterceptors, grpc_auth.UnaryServerInterceptor(s.authFunc))
-		s.streamInterceptors = append(s.streamInterceptors, grpc_auth.StreamServerInterceptor(s.authFunc))
+		s.unaryInterceptors = append(s.unaryInterceptors, grpcauth.UnaryServerInterceptor(s.authFunc))
+		s.streamInterceptors = append(s.streamInterceptors, grpcauth.StreamServerInterceptor(s.authFunc))
 	}
 
 	return s
@@ -96,12 +96,12 @@ func (s *Server) Start() error {
 
 	s.server = grpc.NewServer(
 		grpc.UnaryInterceptor(
-			grpc_middleware.ChainUnaryServer(
+			grpcmiddleware.ChainUnaryServer(
 				s.unaryInterceptors...,
 			),
 		),
 		grpc.StreamInterceptor(
-			grpc_middleware.ChainStreamServer(
+			grpcmiddleware.ChainStreamServer(
 				s.streamInterceptors...,
 			),
 		),
