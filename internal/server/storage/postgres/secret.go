@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
@@ -50,16 +51,76 @@ func (r *SecretRepository) Create(ctx context.Context, uid uuid.UUID, secret *mo
 }
 
 func (r *SecretRepository) ReadByName(ctx context.Context, uid uuid.UUID, name string) (*model.Secret, error) {
-	//TODO implement me
-	panic("implement me")
+	const SQL = `
+		SELECT id, type, name, content
+		FROM secrets
+		WHERE user_id = $1 AND name = $2;
+`
+	m := &model.Secret{}
+
+	err := r.db.QueryRowContext(ctx, SQL, uid.String(), name).Scan(&m.ID, &m.Type, &m.Name, &m.Content)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperr.ErrNotFound
+		}
+		return nil, fmt.Errorf("select: %w", err)
+	}
+
+	return m, nil
 }
 
 func (r *SecretRepository) DeleteByName(ctx context.Context, uid uuid.UUID, name string) error {
-	//TODO implement me
-	panic("implement me")
+	const SQL = `
+		DELETE
+		FROM secrets
+		WHERE user_id = $1 AND name = $2;
+`
+	_, err := r.db.ExecContext(ctx, SQL, uid.String(), name)
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+
+	return nil
 }
 
 func (r *SecretRepository) List(ctx context.Context, uid uuid.UUID) ([]*model.Secret, error) {
-	//TODO implement me
-	panic("implement me")
+	const SQL = `
+		SELECT
+			id,
+			type,
+			name
+		FROM secrets
+		WHERE user_id = $1
+		ORDER BY name
+`
+	rows, err := r.db.QueryContext(ctx, SQL, uid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperr.ErrNotFound
+		}
+		return nil, fmt.Errorf("select: %w", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	res := make([]*model.Secret, 0)
+
+	for rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("rows next: %w", err)
+		}
+		m := &model.Secret{}
+		if err := rows.Scan(
+			&m.ID,
+			&m.UserID,
+			&m.Type,
+			&m.Name,
+		); err != nil {
+			return nil, fmt.Errorf("scan: %w", err)
+		}
+		res = append(res, m)
+	}
+
+	return res, nil
 }
