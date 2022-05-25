@@ -113,7 +113,6 @@ func (r *SecretRepository) List(ctx context.Context, uid uuid.UUID) ([]*model.Se
 		m := &model.Secret{}
 		if err := rows.Scan(
 			&m.ID,
-			&m.UserID,
 			&m.Type,
 			&m.Name,
 		); err != nil {
