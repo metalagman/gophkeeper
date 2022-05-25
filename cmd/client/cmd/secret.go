@@ -28,9 +28,33 @@ var secretListCmd = &cobra.Command{
 	Run:   secretList,
 }
 
+var secretCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Create secret",
+	Long:  `Allows you to create secret`,
+	Run: func(cmd *cobra.Command, args []string) {
+		logger.CheckErr(cmd.Help())
+	},
+}
+
+var secretCreateRawCmd = &cobra.Command{
+	Use:   "raw",
+	Short: "Create raw secret",
+	Long:  `Allows you to create raw secret`,
+	Run:   createRawSecret,
+}
+
+func createRawSecret(cmd *cobra.Command, args []string) {
+
+}
+
 func init() {
 	rootCmd.AddCommand(secretCmd)
+
 	secretCmd.AddCommand(secretListCmd)
+	secretCmd.AddCommand(secretCreateCmd)
+
+	secretCreateCmd.AddCommand(secretCreateRawCmd)
 }
 
 func secretList(cmd *cobra.Command, args []string) {
