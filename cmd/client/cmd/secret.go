@@ -41,6 +41,35 @@ var secretCreateCmd = &cobra.Command{
 	},
 }
 
+var secretRemoveCmd = &cobra.Command{
+	Use:   "rm",
+	Short: "Remove secret",
+	Long:  `Allows you to remove secret`,
+	Run:   removeSecret,
+}
+
+func removeSecret(cmd *cobra.Command, args []string) {
+	var err error
+
+	cl, stop := getKeeperClient()
+	defer stop()
+
+	ctx := context.Background()
+
+	name, err := cmd.Flags().GetString("name")
+	l.CheckErr(err)
+
+	_, err = cl.DeleteSecret(ctx, &pb.DeleteSecretRequest{
+		Name: name,
+	})
+	switch status.Code(err) {
+	case codes.NotFound:
+		l.Fatal().Msg("Secret not found")
+	case codes.OK:
+		l.Info().Msg("Secret removed successfully")
+	}
+}
+
 var secretCreateRawCmd = &cobra.Command{
 	Use:   "raw",
 	Short: "Create raw secret",
@@ -84,6 +113,7 @@ func createRawSecret(cmd *cobra.Command, args []string) {
 	}
 
 	_, err = cl.CreateSecret(ctx, &pb.CreateSecretRequest{
+		Type:    "raw",
 		Name:    name,
 		Content: data,
 	})
@@ -99,11 +129,15 @@ func init() {
 	rootCmd.AddCommand(secretCmd)
 
 	secretCmd.AddCommand(secretListCmd)
+	secretCmd.AddCommand(secretRemoveCmd)
+	secretRemoveCmd.Flags().StringP("name", "n", "", "secret name")
+	logger.CheckErr(secretRemoveCmd.MarkFlagRequired("name"))
+
 	secretCmd.AddCommand(secretCreateCmd)
+	secretCreateCmd.PersistentFlags().StringP("name", "n", "", "secret name")
+	logger.CheckErr(secretCreateCmd.MarkPersistentFlagRequired("name"))
 
 	secretCreateCmd.AddCommand(secretCreateRawCmd)
-	secretCreateCmd.PersistentFlags().StringP("name", "n", "", "secret name")
-
 	secretCreateRawCmd.Flags().String("from-file", "", "path to file")
 	logger.CheckErr(viper.BindPFlag("fromFile", secretCreateRawCmd.Flags().Lookup("from-file")))
 }

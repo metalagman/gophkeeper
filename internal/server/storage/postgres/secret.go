@@ -75,9 +75,18 @@ func (r *SecretRepository) DeleteByName(ctx context.Context, uid uuid.UUID, name
 		FROM secrets
 		WHERE user_id = $1 AND name = $2;
 `
-	_, err := r.db.ExecContext(ctx, SQL, uid.String(), name)
+	res, err := r.db.ExecContext(ctx, SQL, uid.String(), name)
 	if err != nil {
 		return fmt.Errorf("delete: %w", err)
+	}
+
+	ac, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("affected rows: %w", err)
+	}
+
+	if ac == 0 {
+		return apperr.ErrNotFound
 	}
 
 	return nil
