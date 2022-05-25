@@ -49,6 +49,12 @@ func (l Logger) WithComponent(name string) Logger {
 	return Logger{Logger: l.With().Str(componentKey, name).Logger()}
 }
 
+func (l Logger) CheckErr(err error) {
+	if err != nil {
+		l.Fatal().Err(err).Send()
+	}
+}
+
 // Ctx gets or creates context logger
 func Ctx(ctx context.Context) Logger {
 	logger := zerolog.Ctx(ctx)

@@ -15,7 +15,5 @@ func DumpJSON(v interface{}) string {
 
 // CheckErr logs fatal error and exits if error exists
 func CheckErr(err error) {
-	if err != nil {
-		Global().Fatal().Err(err).Send()
-	}
+	Global().CheckErr(err)
 }

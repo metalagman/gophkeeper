@@ -5,11 +5,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	pb "gophkeeper/api/proto"
 	"gophkeeper/pkg/logger"
+	"io/ioutil"
 	"log"
+	"os"
 )
 
 var secretCmd = &cobra.Command{
@@ -45,7 +49,50 @@ var secretCreateRawCmd = &cobra.Command{
 }
 
 func createRawSecret(cmd *cobra.Command, args []string) {
+	var file *os.File
+	var err error
 
+	if fromFile := viper.GetString("fromFile"); fromFile != "" {
+		file, err = os.Open(fromFile)
+		if err != nil {
+			l.CheckErr(err)
+		}
+		defer func(file *os.File) {
+			_ = file.Close()
+		}(file)
+	} else {
+		file = os.Stdin
+	}
+
+	data, err := ioutil.ReadAll(file)
+	l.CheckErr(err)
+
+	if len(data) == 0 {
+		l.Fatal().Msg("Unable to create empty secret")
+	}
+
+	cl, stop := getKeeperClient()
+	defer stop()
+
+	ctx := context.Background()
+
+	name, err := cmd.Flags().GetString("name")
+	l.CheckErr(err)
+
+	if name == "" {
+		l.Fatal().Msg("Please specify secret name")
+	}
+
+	_, err = cl.CreateSecret(ctx, &pb.CreateSecretRequest{
+		Name:    name,
+		Content: data,
+	})
+	switch status.Code(err) {
+	case codes.AlreadyExists:
+		l.Fatal().Msg("Secret already exists")
+	case codes.OK:
+		l.Info().Msg("Secret created successfully")
+	}
 }
 
 func init() {
@@ -55,6 +102,10 @@ func init() {
 	secretCmd.AddCommand(secretCreateCmd)
 
 	secretCreateCmd.AddCommand(secretCreateRawCmd)
+	secretCreateCmd.PersistentFlags().StringP("name", "n", "", "secret name")
+
+	secretCreateRawCmd.Flags().String("from-file", "", "path to file")
+	logger.CheckErr(viper.BindPFlag("fromFile", secretCreateRawCmd.Flags().Lookup("from-file")))
 }
 
 func secretList(cmd *cobra.Command, args []string) {

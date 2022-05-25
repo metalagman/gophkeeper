@@ -20,6 +20,7 @@ const (
 
 var (
 	authViper *viper.Viper
+	l         *logger.Logger
 )
 
 var rootCmd = &cobra.Command{
@@ -69,7 +70,6 @@ func initAuth() {
 	logger.CheckErr(err)
 	authViper = uc.Viper("auth")
 
-	l := logger.Global()
 	l.Debug().
 		Str("email", authViper.GetString("email")).
 		Str("token", authViper.GetString("token")).
@@ -82,4 +82,5 @@ func initLogger() {
 		Verbose:    viper.GetBool("log_verbose"),
 		TimeFormat: time.Kitchen,
 	})
+	l = logger.Global()
 }
