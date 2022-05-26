@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -16,36 +17,77 @@ import (
 	"os"
 )
 
-var secretCmd = &cobra.Command{
-	Use:   "secret",
-	Short: "Secret management",
-	Long:  `Choose one of the command to do with secrets`,
-	Run: func(cmd *cobra.Command, args []string) {
-		logger.CheckErr(cmd.Help())
-	},
-}
+var (
+	secretCmd = &cobra.Command{
+		Use:   "secret",
+		Short: "Secret management",
+		Long:  `Choose one of the command to do with secrets`,
+		Run: func(cmd *cobra.Command, args []string) {
+			checkErr(cmd.Help())
+		},
+	}
+	secretListCmd = &cobra.Command{
+		Use:   "ls",
+		Short: "List own secrets",
+		Long:  `Allows you to list own secrets stored on server`,
+		Run:   secretList,
+	}
+	secretCreateCmd = &cobra.Command{
+		Use:   "create",
+		Short: "Create secret",
+		Long:  `Allows you to create secret`,
+		Run: func(cmd *cobra.Command, args []string) {
+			checkErr(cmd.Help())
+		},
+	}
+	secretCreateLoginPasswordCmd = &cobra.Command{
+		Use:   "lp [login] [password]",
+		Short: "Create login/password secret",
+		Long:  `Allows you to create raw secret`,
+		Args:  cobra.ExactArgs(2),
+		Run:   createLoginPasswordSecret,
+	}
+	secretCreateCardCmd = &cobra.Command{
+		Use:   "card [number] [expires] [cvv] [holder]",
+		Short: "Create card secret",
+		Long:  `Allows you to create raw secret`,
+		Args:  cobra.ExactArgs(4),
+		Run:   createCardSecret,
+	}
+	secretCreateRawCmd = &cobra.Command{
+		Use:   "raw",
+		Short: "Create raw secret",
+		Long:  `Allows you to create raw secret`,
+		Run:   createRawSecret,
+	}
+	secretRemoveCmd = &cobra.Command{
+		Use:   "rm",
+		Short: "Remove secret",
+		Long:  `Allows you to remove secret`,
+		Run:   removeSecret,
+	}
+)
 
-var secretListCmd = &cobra.Command{
-	Use:   "ls",
-	Short: "List own secrets",
-	Long:  `Allows you to list own secrets stored on server`,
-	Run:   secretList,
-}
+func init() {
+	rootCmd.AddCommand(secretCmd)
 
-var secretCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create secret",
-	Long:  `Allows you to create secret`,
-	Run: func(cmd *cobra.Command, args []string) {
-		logger.CheckErr(cmd.Help())
-	},
-}
+	secretCmd.AddCommand(secretListCmd)
+	secretCmd.AddCommand(secretRemoveCmd)
+	secretRemoveCmd.PersistentFlags().StringP("name", "n", "", "secret name")
+	checkErr(secretRemoveCmd.MarkPersistentFlagRequired("name"))
 
-var secretRemoveCmd = &cobra.Command{
-	Use:   "rm",
-	Short: "Remove secret",
-	Long:  `Allows you to remove secret`,
-	Run:   removeSecret,
+	secretCmd.AddCommand(secretCreateCmd)
+
+	secretCreateCmd.AddCommand(secretCreateRawCmd)
+	secretCreateRawCmd.Flags().StringP("name", "n", "", "secret name")
+	checkErr(secretCreateRawCmd.MarkFlagRequired("name"))
+	secretCreateRawCmd.Flags().String("from-file", "-f", "take secret content from this file")
+	secretCreateCmd.AddCommand(secretCreateLoginPasswordCmd)
+	secretCreateLoginPasswordCmd.Flags().StringP("name", "n", "", "secret name")
+	checkErr(secretCreateLoginPasswordCmd.MarkFlagRequired("name"))
+	secretCreateCmd.AddCommand(secretCreateCardCmd)
+	secretCreateCardCmd.Flags().StringP("name", "n", "", "secret name")
+	checkErr(secretCreateCardCmd.MarkFlagRequired("name"))
 }
 
 func removeSecret(cmd *cobra.Command, args []string) {
@@ -57,7 +99,7 @@ func removeSecret(cmd *cobra.Command, args []string) {
 	ctx := context.Background()
 
 	name, err := cmd.Flags().GetString("name")
-	l.CheckErr(err)
+	checkErr(err)
 
 	_, err = cl.DeleteSecret(ctx, &pb.DeleteSecretRequest{
 		Name: name,
@@ -70,31 +112,11 @@ func removeSecret(cmd *cobra.Command, args []string) {
 	}
 }
 
-var secretCreateRawCmd = &cobra.Command{
-	Use:   "raw",
-	Short: "Create raw secret",
-	Long:  `Allows you to create raw secret`,
-	Run:   createRawSecret,
-}
-
-func createRawSecret(cmd *cobra.Command, args []string) {
-	var file *os.File
-	var err error
-
-	if fromFile := viper.GetString("fromFile"); fromFile != "" {
-		file, err = os.Open(fromFile)
-		if err != nil {
-			l.CheckErr(err)
-		}
-		defer func(file *os.File) {
-			_ = file.Close()
-		}(file)
-	} else {
-		file = os.Stdin
+func createGenericSecret(t, n string, v any) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		l.Fatal().Err(err).Send()
 	}
-
-	data, err := ioutil.ReadAll(file)
-	l.CheckErr(err)
 
 	if len(data) == 0 {
 		l.Fatal().Msg("Unable to create empty secret")
@@ -105,16 +127,13 @@ func createRawSecret(cmd *cobra.Command, args []string) {
 
 	ctx := context.Background()
 
-	name, err := cmd.Flags().GetString("name")
-	l.CheckErr(err)
-
-	if name == "" {
+	if n == "" {
 		l.Fatal().Msg("Please specify secret name")
 	}
 
 	_, err = cl.CreateSecret(ctx, &pb.CreateSecretRequest{
-		Type:    "raw",
-		Name:    name,
+		Type:    t,
+		Name:    n,
 		Content: data,
 	})
 	switch status.Code(err) {
@@ -125,21 +144,66 @@ func createRawSecret(cmd *cobra.Command, args []string) {
 	}
 }
 
-func init() {
-	rootCmd.AddCommand(secretCmd)
+func createRawSecret(cmd *cobra.Command, args []string) {
+	var file *os.File
+	var err error
 
-	secretCmd.AddCommand(secretListCmd)
-	secretCmd.AddCommand(secretRemoveCmd)
-	secretRemoveCmd.Flags().StringP("name", "n", "", "secret name")
-	logger.CheckErr(secretRemoveCmd.MarkFlagRequired("name"))
+	fromFile, err := cmd.Flags().GetString("from-file")
+	checkErr(err)
 
-	secretCmd.AddCommand(secretCreateCmd)
-	secretCreateCmd.PersistentFlags().StringP("name", "n", "", "secret name")
-	logger.CheckErr(secretCreateCmd.MarkPersistentFlagRequired("name"))
+	if fromFile != "" {
+		file, err = os.Open(fromFile)
+		if err != nil {
+			checkErr(err)
+		}
+		defer func(file *os.File) {
+			_ = file.Close()
+		}(file)
+	} else {
+		file = os.Stdin
+	}
 
-	secretCreateCmd.AddCommand(secretCreateRawCmd)
-	secretCreateRawCmd.Flags().String("from-file", "", "path to file")
-	logger.CheckErr(viper.BindPFlag("fromFile", secretCreateRawCmd.Flags().Lookup("from-file")))
+	data, err := ioutil.ReadAll(file)
+	checkErr(err)
+
+	name, err := cmd.Flags().GetString("name")
+	checkErr(err)
+
+	createGenericSecret("raw", name, data)
+}
+
+func createLoginPasswordSecret(cmd *cobra.Command, args []string) {
+	in := struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}{
+		Login:    args[0],
+		Password: args[1],
+	}
+
+	name, err := cmd.Flags().GetString("name")
+	checkErr(err)
+
+	createGenericSecret("lp", name, in)
+}
+
+func createCardSecret(cmd *cobra.Command, args []string) {
+	in := struct {
+		Number  string `json:"number"`
+		Expires string `json:"expires"`
+		CVV     string `json:"cvv"`
+		Holder  string `json:"holder"`
+	}{
+		Number:  args[0],
+		Expires: args[1],
+		CVV:     args[2],
+		Holder:  args[3],
+	}
+
+	name, err := cmd.Flags().GetString("name")
+	checkErr(err)
+
+	createGenericSecret("card", name, in)
 }
 
 func secretList(cmd *cobra.Command, args []string) {
@@ -164,7 +228,7 @@ func getKeeperClient() (pb.KeeperClient, func()) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(clientAuthInterceptor),
 	)
-	logger.CheckErr(err)
+	checkErr(err)
 
 	stop := func() {
 		_ = conn.Close()

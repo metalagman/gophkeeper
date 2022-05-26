@@ -17,7 +17,7 @@ var authCmd = &cobra.Command{
 	Short: "Authorization",
 	Long:  `Choose one of the command to do with authorization`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.CheckErr(cmd.Help())
+		checkErr(cmd.Help())
 	},
 }
 
@@ -63,10 +63,10 @@ func register(cmd *cobra.Command, args []string) {
 		Password: password,
 	})
 
-	logger.CheckErr(err)
+	checkErr(err)
 	authViper.Set("email", email)
 	authViper.Set("token", resp.GetToken())
-	logger.CheckErr(authViper.WriteConfig())
+	checkErr(authViper.WriteConfig())
 }
 
 func login(cmd *cobra.Command, args []string) {
@@ -81,10 +81,10 @@ func login(cmd *cobra.Command, args []string) {
 		Password: password,
 	})
 
-	logger.CheckErr(err)
+	checkErr(err)
 	authViper.Set("email", email)
 	authViper.Set("token", resp.GetToken())
-	logger.CheckErr(authViper.WriteConfig())
+	checkErr(authViper.WriteConfig())
 }
 
 func forgetAuth(cmd *cobra.Command, args []string) {
@@ -109,7 +109,7 @@ func getUserClient() (pb.UserClient, func()) {
 		viper.GetString("server_addr"),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-	logger.CheckErr(err)
+	checkErr(err)
 
 	stop := func() {
 		_ = conn.Close()

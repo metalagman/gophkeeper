@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 	Short: "gophkeeper client",
 	Long:  `gophkeeper client`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.CheckErr(cmd.Help())
+		checkErr(cmd.Help())
 	},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return nil
@@ -37,7 +37,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	logger.CheckErr(rootCmd.Execute())
+	checkErr(rootCmd.Execute())
 }
 
 func init() {
@@ -53,26 +53,25 @@ func init() {
 
 func initDotEnv() {
 	if err := godotenv.Load(); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		logger.CheckErr(fmt.Errorf(".env load: %w", err))
+		checkErr(fmt.Errorf(".env load: %w", err))
 	}
 }
 
 func initConfig() {
 	viper.SetDefault("server_addr", "localhost:50051")
-	viper.SetDefault("log_verbose", 1)
+	viper.SetDefault("log_verbose", 0)
 
-	logger.CheckErr(viper.BindPFlag("log_verbose", rootCmd.PersistentFlags().Lookup("verbose")))
-	logger.CheckErr(viper.BindPFlag("server_addr", rootCmd.PersistentFlags().Lookup("server")))
+	checkErr(viper.BindPFlag("log_verbose", rootCmd.PersistentFlags().Lookup("verbose")))
+	checkErr(viper.BindPFlag("server_addr", rootCmd.PersistentFlags().Lookup("server")))
 }
 
 func initAuth() {
 	uc, err := userconfig.New(appName, "toml")
-	logger.CheckErr(err)
+	checkErr(err)
 	authViper = uc.Viper("auth")
 
 	l.Debug().
 		Str("email", authViper.GetString("email")).
-		Str("token", authViper.GetString("token")).
 		Msg("Auth")
 }
 
@@ -83,4 +82,11 @@ func initLogger() {
 		TimeFormat: time.Kitchen,
 	})
 	l = logger.Global()
+}
+
+func checkErr(err error) {
+	if err == nil {
+		return
+	}
+	logger.Global().Fatal().Msg(err.Error())
 }
