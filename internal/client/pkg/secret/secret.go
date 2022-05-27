@@ -1,8 +1,12 @@
 package secret
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"gophkeeper/pkg/logger"
+	"strings"
+	"text/template"
 )
 
 var (
@@ -65,7 +69,18 @@ func (s *Card) Decode(bytes []byte) error {
 }
 
 func (s *Card) Print() string {
-	return fmt.Sprint(s)
+	var tmpl = `
+Number:       {{.Number}}
+Expires:      {{.Expires}}
+CVV:          {{.CVV}}
+Holder:       {{.Holder}}
+`
+	t := template.Must(template.New("secret").Parse(tmpl))
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, "secret", s); err != nil {
+		logger.Global().Fatal().Err(err).Send()
+	}
+	return strings.TrimSpace(buf.String()) + "\n"
 }
 
 type LoginPassword struct {
@@ -86,7 +101,16 @@ func (s *LoginPassword) Decode(bytes []byte) error {
 }
 
 func (s *LoginPassword) Print() string {
-	return fmt.Sprint(s)
+	var tmpl = `
+Login:        {{.Login}}
+Password:     {{.Password}}
+`
+	t := template.Must(template.New("secret").Parse(tmpl))
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, "secret", s); err != nil {
+		logger.Global().Fatal().Err(err).Send()
+	}
+	return strings.TrimSpace(buf.String()) + "\n"
 }
 
 type Raw []byte
@@ -104,5 +128,5 @@ func (s *Raw) Decode(bytes []byte) error {
 }
 
 func (s *Raw) Print() string {
-	return fmt.Sprint([]byte(*s))
+	return fmt.Sprint(string([]byte(*s)))
 }

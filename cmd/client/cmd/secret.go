@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
@@ -12,10 +13,10 @@ import (
 	"google.golang.org/grpc/status"
 	pb "gophkeeper/api/proto"
 	"gophkeeper/internal/client/pkg/secret"
-	"gophkeeper/pkg/logger"
 	"io/ioutil"
-	"log"
 	"os"
+	"strings"
+	"text/template"
 )
 
 var (
@@ -237,7 +238,6 @@ func createCardSecret(cmd *cobra.Command, args []string) {
 }
 
 func secretList(cmd *cobra.Command, args []string) {
-	l := logger.Global()
 	ctx := context.Background()
 
 	cl, stop := getKeeperClient()
@@ -245,10 +245,20 @@ func secretList(cmd *cobra.Command, args []string) {
 
 	resp, err := cl.ListSecrets(ctx, &pb.ListSecretsRequest{})
 	if err != nil {
-		l.Fatal().Err(err).Msg("Server error")
+		checkErr(err)
 	}
 
-	log.Println(resp.GetSecrets())
+	var tmpl = `
+Name		Type
+{{range .}}{{.Name}}		{{.Type}}
+{{end}}
+`
+	t := template.Must(template.New("secret").Parse(tmpl))
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, "secret", resp.Secrets); err != nil {
+		checkErr(err)
+	}
+	fmt.Println(strings.TrimSpace(buf.String()))
 }
 
 func getKeeperClient() (pb.KeeperClient, func()) {
