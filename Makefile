@@ -26,13 +26,20 @@ generate:
 .PHONY: build
 build: build-client build-server
 
+EXECUTABLE=executable-name
+WINDOWS=$(EXECUTABLE)_windows_amd64.exe
+LINUX=$(EXECUTABLE)_linux_amd64
+DARWIN=$(EXECUTABLE)_darwin_amd64
+VERSION=$(shell git describe --tags --always --long --dirty)
+
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 GIT_COMMIT := $(shell git rev-list -1 HEAD)
 BUILD_DATE := $(shell date +%FT%T%z)
-VERSION := $(shell git describe --tags --abbrev=0 --always)
+#VERSION := $(shell git describe --tags --abbrev=0 --always)
 
 build-client:
 	@echo "Building the client app to the bin dir"
+	@echo version: $(VERSION)
 	CGO_ENABLED=1 go build -o ./bin/gkcli \
 		-ldflags="-X 'gophkeeper/pkg/version.Revision=$(GIT_COMMIT)'\
 		 -X 'gophkeeper/pkg/version.Version=$(VERSION)'\
