@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	pb "gophkeeper/api/proto"
+	"gophkeeper/internal/client/pkg/secret"
 	"gophkeeper/pkg/logger"
 	"io/ioutil"
 	"log"
@@ -60,6 +61,12 @@ var (
 		Long:  `Allows you to create raw secret`,
 		Run:   createRawSecret,
 	}
+	secretReadCmd = &cobra.Command{
+		Use:   "read",
+		Short: "Read secret",
+		Long:  `Allows you to read secret`,
+		Run:   readSecret,
+	}
 	secretRemoveCmd = &cobra.Command{
 		Use:   "rm",
 		Short: "Remove secret",
@@ -72,6 +79,11 @@ func init() {
 	rootCmd.AddCommand(secretCmd)
 
 	secretCmd.AddCommand(secretListCmd)
+
+	secretCmd.AddCommand(secretReadCmd)
+	secretReadCmd.PersistentFlags().StringP("name", "n", "", "secret name")
+	checkErr(secretReadCmd.MarkPersistentFlagRequired("name"))
+
 	secretCmd.AddCommand(secretRemoveCmd)
 	secretRemoveCmd.PersistentFlags().StringP("name", "n", "", "secret name")
 	checkErr(secretRemoveCmd.MarkPersistentFlagRequired("name"))
@@ -88,6 +100,30 @@ func init() {
 	secretCreateCmd.AddCommand(secretCreateCardCmd)
 	secretCreateCardCmd.Flags().StringP("name", "n", "", "secret name")
 	checkErr(secretCreateCardCmd.MarkFlagRequired("name"))
+}
+
+func readSecret(cmd *cobra.Command, args []string) {
+	var err error
+
+	cl, stop := getKeeperClient()
+	defer stop()
+
+	ctx := context.Background()
+
+	name, err := cmd.Flags().GetString("name")
+	checkErr(err)
+
+	resp, err := cl.ReadSecret(ctx, &pb.ReadSecretRequest{
+		Name: name,
+	})
+	switch status.Code(err) {
+	case codes.NotFound:
+		l.Fatal().Msg("Secret not found")
+	case codes.OK:
+		s, err := secret.Read(resp.Type, resp.Content)
+		checkErr(err)
+		fmt.Print(s.Print())
+	}
 }
 
 func removeSecret(cmd *cobra.Command, args []string) {
@@ -112,8 +148,8 @@ func removeSecret(cmd *cobra.Command, args []string) {
 	}
 }
 
-func createGenericSecret(t, n string, v any) {
-	data, err := json.Marshal(v)
+func createGenericSecret(n string, s secret.Secret) {
+	data, err := s.Encode()
 	if err != nil {
 		l.Fatal().Err(err).Send()
 	}
@@ -132,7 +168,7 @@ func createGenericSecret(t, n string, v any) {
 	}
 
 	_, err = cl.CreateSecret(ctx, &pb.CreateSecretRequest{
-		Type:    t,
+		Type:    s.Type(),
 		Name:    n,
 		Content: data,
 	})
@@ -169,14 +205,13 @@ func createRawSecret(cmd *cobra.Command, args []string) {
 	name, err := cmd.Flags().GetString("name")
 	checkErr(err)
 
-	createGenericSecret("raw", name, data)
+	s := secret.Raw(data)
+
+	createGenericSecret(name, &s)
 }
 
 func createLoginPasswordSecret(cmd *cobra.Command, args []string) {
-	in := struct {
-		Login    string `json:"login"`
-		Password string `json:"password"`
-	}{
+	in := &secret.LoginPassword{
 		Login:    args[0],
 		Password: args[1],
 	}
@@ -184,16 +219,11 @@ func createLoginPasswordSecret(cmd *cobra.Command, args []string) {
 	name, err := cmd.Flags().GetString("name")
 	checkErr(err)
 
-	createGenericSecret("lp", name, in)
+	createGenericSecret(name, in)
 }
 
 func createCardSecret(cmd *cobra.Command, args []string) {
-	in := struct {
-		Number  string `json:"number"`
-		Expires string `json:"expires"`
-		CVV     string `json:"cvv"`
-		Holder  string `json:"holder"`
-	}{
+	in := secret.Card{
 		Number:  args[0],
 		Expires: args[1],
 		CVV:     args[2],
@@ -203,7 +233,7 @@ func createCardSecret(cmd *cobra.Command, args []string) {
 	name, err := cmd.Flags().GetString("name")
 	checkErr(err)
 
-	createGenericSecret("card", name, in)
+	createGenericSecret(name, &in)
 }
 
 func secretList(cmd *cobra.Command, args []string) {
