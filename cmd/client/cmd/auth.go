@@ -67,6 +67,8 @@ func register(cmd *cobra.Command, args []string) {
 	authViper.Set("email", email)
 	authViper.Set("token", resp.GetToken())
 	checkErr(authViper.WriteConfig())
+
+	l.Info().Msg("Ok")
 }
 
 func login(cmd *cobra.Command, args []string) {
@@ -85,6 +87,8 @@ func login(cmd *cobra.Command, args []string) {
 	authViper.Set("email", email)
 	authViper.Set("token", resp.GetToken())
 	checkErr(authViper.WriteConfig())
+
+	l.Info().Msg("Ok")
 }
 
 func forgetAuth(cmd *cobra.Command, args []string) {

@@ -178,6 +178,10 @@ func createGenericSecret(n string, s secret.Secret) {
 		l.Fatal().Msg("Secret already exists")
 	case codes.OK:
 		l.Info().Msg("Secret created successfully")
+	case codes.Unauthenticated:
+		l.Fatal().Msg("Auth error")
+	default:
+		l.Fatal().Msg(err.Error())
 	}
 }
 

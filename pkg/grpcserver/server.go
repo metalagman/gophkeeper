@@ -6,7 +6,6 @@ import (
 	grpcauth "github.com/grpc-ecosystem/go-grpc-middleware/v2/auth"
 	"google.golang.org/grpc"
 	"gophkeeper/pkg/logger"
-	"log"
 	"net"
 )
 
@@ -85,7 +84,6 @@ func (s *Server) RegisterServices(services ...Service) {
 }
 
 func (s *Server) Start() error {
-	log.Printf("%+v", s)
 	lis, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)

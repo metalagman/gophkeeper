@@ -22,7 +22,7 @@ services:
       - server_deps
     ports:
         - "50051:50051"
-    command: ["/app/gk", "serve", "-v"]
+    command: ["/app/gk", "serve"]
 
   db:
     image: postgres:14.1-alpine
