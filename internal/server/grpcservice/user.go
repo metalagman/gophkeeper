@@ -36,11 +36,6 @@ func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 	}
 
 	u, err := s.users.Create(ctx, u)
-	if err != nil {
-		return nil, err
-	}
-
-	t, err := s.token.Issue(u, tokenLifetime)
 	switch err {
 	case nil:
 		// all is ok
@@ -48,6 +43,11 @@ func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	default:
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	t, err := s.token.Issue(u, tokenLifetime)
+	if err != nil {
+		return nil, err
 	}
 
 	return &pb.RegisterResponse{

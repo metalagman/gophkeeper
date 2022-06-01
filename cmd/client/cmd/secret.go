@@ -94,7 +94,7 @@ func init() {
 	secretCreateCmd.AddCommand(secretCreateRawCmd)
 	secretCreateRawCmd.Flags().StringP("name", "n", "", "secret name")
 	checkErr(secretCreateRawCmd.MarkFlagRequired("name"))
-	secretCreateRawCmd.Flags().String("from-file", "-f", "take secret content from this file")
+	secretCreateRawCmd.Flags().StringP("from-file", "f", "", "take secret content from this file")
 	secretCreateCmd.AddCommand(secretCreateLoginPasswordCmd)
 	secretCreateLoginPasswordCmd.Flags().StringP("name", "n", "", "secret name")
 	checkErr(secretCreateLoginPasswordCmd.MarkFlagRequired("name"))
@@ -254,7 +254,7 @@ func secretList(cmd *cobra.Command, args []string) {
 
 	var tmpl = `
 Name		Type
-{{range .}}{{.Name}}		{{.Type}}
+{{range .}}{{.Name}}			{{.Type}}
 {{end}}
 `
 	t := template.Must(template.New("secret").Parse(tmpl))

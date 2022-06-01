@@ -5,7 +5,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	pb "gophkeeper/api/proto"
 	"gophkeeper/pkg/logger"
 	"os"
@@ -63,12 +65,20 @@ func register(cmd *cobra.Command, args []string) {
 		Password: password,
 	})
 
-	checkErr(err)
+	switch status.Code(err) {
+	case codes.OK:
+		// register ok
+	case codes.InvalidArgument:
+		fallthrough
+	default:
+		l.Fatal().Msg(err.Error())
+	}
+
 	authViper.Set("email", email)
 	authViper.Set("token", resp.GetToken())
 	checkErr(authViper.WriteConfig())
 
-	l.Info().Msg("Ok")
+	l.Info().Msg("Auth saved")
 }
 
 func login(cmd *cobra.Command, args []string) {
@@ -83,12 +93,20 @@ func login(cmd *cobra.Command, args []string) {
 		Password: password,
 	})
 
-	checkErr(err)
+	switch status.Code(err) {
+	case codes.OK:
+		// login ok
+	case codes.Unauthenticated:
+		l.Fatal().Msg("Auth error")
+	default:
+		l.Fatal().Msg(err.Error())
+	}
+
 	authViper.Set("email", email)
 	authViper.Set("token", resp.GetToken())
 	checkErr(authViper.WriteConfig())
 
-	l.Info().Msg("Ok")
+	l.Info().Msg("Auth saved")
 }
 
 func forgetAuth(cmd *cobra.Command, args []string) {
