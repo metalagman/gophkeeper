@@ -3,6 +3,7 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	"gophkeeper/internal/server/config"
 	"gophkeeper/internal/server/grpcservice"
 	"gophkeeper/internal/server/migrate"
@@ -21,6 +22,8 @@ type App struct {
 
 func New(cfg config.Config) (*App, error) {
 	l := *logger.Global()
+
+	l.Debug().Str("dsn", cfg.DB.DSN).Msg("Connecting to db")
 
 	db, err := sql.Open("postgres", cfg.DB.DSN)
 	if err != nil {

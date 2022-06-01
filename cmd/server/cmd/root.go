@@ -60,6 +60,8 @@ dsn=""
 [log]
 verbose=0
 pretty=0
+[security]
+secret_key="CHANGE_ME"
 `)
 	logger.CheckErr(viper.ReadConfig(bytes.NewBuffer(defaultConfig)))
 
@@ -74,4 +76,6 @@ pretty=0
 
 func initLogger() {
 	logger.NewGlobal(cfg.Logger)
+
+	logger.Global().Debug().Msgf("Config: %+v", cfg)
 }
